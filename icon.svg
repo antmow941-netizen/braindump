@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <rect width="180" height="180" fill="#04060C"/>
+  <circle cx="90" cy="84" r="46" fill="none" stroke="#99C4F0" stroke-width="5" stroke-dasharray="3 6"/>
+  <text x="90" y="150" font-family="Arial, sans-serif" font-size="26" fill="#99C4F0" text-anchor="middle">BRAIN</text>
+</svg>
