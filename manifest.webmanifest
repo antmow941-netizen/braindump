@@ -1,0 +1,1 @@
+{"name":"Braindump","short_name":"Braindump","description":"Voice-first capture front-end for the POORMANSTHRIFTCO command center.","start_url":"./","scope":"./","display":"standalone","orientation":"portrait","background_color":"#04060C","theme_color":"#04060C","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
