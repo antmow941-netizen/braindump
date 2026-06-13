@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>BRAINDUMP</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Braindump">
+<meta name="theme-color" content="#04060C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2304060C'/%3E%3Ccircle cx='90' cy='84' r='46' fill='none' stroke='%2399C4F0' stroke-width='5' stroke-dasharray='3 6'/%3E%3Ctext x='90' y='150' font-family='Arial' font-size='26' fill='%2399C4F0' text-anchor='middle'%3EBRAIN%3C/text%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="halo"></div>
+<canvas id="gl"></canvas>
+
+<header>
+  <div class="ico" id="menuBtn">&#9776;</div>
+  <div class="ico" id="dotsBtn">&#8943;</div>
+</header>
+
+<div id="stack">
+  <canvas id="wave" width="660" height="68"></canvas>
+  <div id="state">Tap to speak</div>
+  <div id="sub">everything stays on this device</div>
+  <div id="interim"></div>
+</div>
+
+<div id="dock">
+  <button class="ctl" id="addBtn" aria-label="Add files">+<span class="num" id="addNum">0</span></button>
+  <button id="mic" aria-label="Record">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>
+    </svg>
+  </button>
+  <button class="ctl" id="listBtn" aria-label="Today's dump">&#9776;<span class="num" id="listNum">0</span></button>
+</div>
+
+<input type="file" id="filePick" accept="image/*,.pdf,.txt,.md" multiple style="display:none">
+
+<div id="sheet">
+  <div class="grip"></div>
+  <div class="sh-head">
+    <div class="daynav">
+      <span class="daybtn" id="dayPrev">&#8249;</span>
+      <h2 id="dayLabel">Today&rsquo;s dump</h2>
+      <span class="daybtn" id="dayNext">&#8250;</span>
+    </div>
+    <div class="sh-x" id="sheetX">&times;</div>
+  </div>
+  <div class="sh-body" id="sheetBody"></div>
+  <div class="sh-foot">
+    <button class="btn" id="exportBtn">Export .md</button>
+    <button class="btn send" id="sendBtn">Send to vault</button>
+  </div>
+</div>
+
+<div id="cfg">
+  <div class="grip"></div>
+  <div class="sh-head"><h2>Vault settings</h2><div class="sh-x" id="cfgX">&times;</div></div>
+  <div class="sh-body">
+    <label class="field">n8n intake webhook URL
+      <input type="text" id="cfgWebhook" autocomplete="off" autocapitalize="none" placeholder="https://…/webhook/braindump-intake">
+    </label>
+    <label class="field">Webhook key
+      <input type="password" id="cfgWebhookKey" autocomplete="off" placeholder="shared key">
+    </label>
+    <div class="hint">Preferred: dumps go to your n8n workflow, which commits them to
+      the vault repo with its own GitHub credential &mdash; no GitHub token on this
+      device. Leave the fields below empty unless you want direct GitHub mode instead.</div>
+    <label class="field">GitHub fine-grained token
+      <input type="password" id="cfgToken" autocomplete="off" placeholder="github_pat_…">
+    </label>
+    <label class="field">Repository
+      <input type="text" id="cfgRepo" autocomplete="off" autocapitalize="none" placeholder="yourname/brain-inbox">
+    </label>
+    <label class="field">Branch
+      <input type="text" id="cfgBranch" autocomplete="off" autocapitalize="none" placeholder="main">
+    </label>
+    <label class="field">Base path
+      <input type="text" id="cfgPath" autocomplete="off" autocapitalize="none" placeholder="raw/inbox">
+    </label>
+    <div class="hint">Token is stored only in this device&rsquo;s browser storage and is sent
+      only to api.github.com when you tap &ldquo;Send to vault&rdquo;. Give it access to the one
+      inbox repo, Contents read&nbsp;&amp;&nbsp;write.</div>
+  </div>
+  <div class="sh-foot">
+    <button class="btn send" id="cfgSave">Save</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="src/capture.js"></script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+</body>
+</html>
