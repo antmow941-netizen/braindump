@@ -85,25 +85,44 @@ export function buildMd(day,d){
    Preferred: POST to the n8n intake webhook (key in body; n8n commits to the
    repo with its own GitHub credential — no token on this device).
    Fallback: direct GitHub contents API when a token+repo are configured. */
-export async function sendDay(day){
+export async function sendDay(day,onProgress){
   const cfg=await store.getSettings();
   const d=await store.forDay(day);
   if(!d.text.length&&!d.files.length)throw new Error('nothing to send');
 
   if(cfg.webhook){
+    // gather files as base64, then split into size-budgeted batches so a big
+    // day (many PDFs) is sent as several small requests instead of one huge one.
     const files=[];
     for(const f of d.files){
       if(!f.blob)continue;
       files.push({name:f.name,type:f.type,b64:await blobToB64(f.blob)});
     }
-    const r=await fetch(cfg.webhook,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({key:cfg.webhookKey||'',day:day,md:buildMd(day,d),files:files})
-    });
-    if(r.status===401)throw new Error('webhook rejected the key — check settings');
-    const j=await r.json().catch(function(){return null;});
-    if(!r.ok||!j||j.ok!==true)throw new Error((j&&j.error)||'webhook error '+r.status);
+    const BUDGET=3500000;                 // ~3.5MB of base64 per request
+    const chunks=[]; let cur=[],curSize=0;
+    for(const f of files){
+      const sz=f.b64.length;
+      if(cur.length&&curSize+sz>BUDGET){chunks.push(cur);cur=[];curSize=0;}
+      cur.push(f);curSize+=sz;
+    }
+    if(cur.length)chunks.push(cur);
+    if(!chunks.length)chunks.push([]);    // still send the .md when there are no files
+
+    async function postChunk(body){
+      const r=await fetch(cfg.webhook,{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+      });
+      if(r.status===401)throw new Error('webhook rejected the key — check settings');
+      const j=await r.json().catch(function(){return null;});
+      if(!r.ok||!j||j.ok!==true)throw new Error((j&&j.error)||'webhook error '+r.status);
+    }
+
+    const total=chunks.length;
+    for(let i=0;i<total;i++){
+      if(onProgress)onProgress(i+1,total);
+      // md travels with the first request only; later requests just add files
+      await postChunk({key:cfg.webhookKey||'',day:day,md:i===0?buildMd(day,d):'',files:chunks[i]});
+    }
     return;
   }
 
