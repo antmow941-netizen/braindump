@@ -262,7 +262,7 @@ function pulse(){
 }
 async function trySend(day,fromQueue){
   try{
-    await vault.sendDay(day);
+    await vault.sendDay(day,function(i,total){if(total>1)say('sending '+i+'/'+total+'…');});
     return true;
   }catch(e){
     if(e.message==='settings-missing'){say('set up vault sync first');openCfg();}
