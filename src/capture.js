@@ -20,8 +20,11 @@ let viewDay=store.today();   // day shown in the sheet; capture always goes to t
 
 async function counts(){
   const d=await store.forDay(store.today());
-  addNum.textContent=d.files.length;addNum.classList.toggle('on',d.files.length>0);
-  listNum.textContent=d.text.length;listNum.classList.toggle('on',d.text.length>0);
+  // badges count PENDING (unsent) items, so they drop to 0 once a send completes
+  const pendF=d.files.filter(function(f){return !f.sent;}).length;
+  const pendT=d.text.filter(function(t){return !t.sent;}).length;
+  addNum.textContent=pendF;addNum.classList.toggle('on',pendF>0);
+  listNum.textContent=pendT;listNum.classList.toggle('on',pendT>0);
   const q=await store.queueAll();
   sendBtn.textContent=q.length?'Send to vault ('+q.length+' queued)':'Send to vault';
 }
@@ -187,21 +190,31 @@ async function renderSheet(){
   } else {
     all.forEach(function(o){
       var el=document.createElement('div');
+      var tick=o.x.sent?' <span class="ok">✓ sent</span>':'';
       if(o.k==='text'){
-        el.className='item';
-        el.innerHTML='<div class="meta"><span>VOICE</span><span>'+fmt(o.x.ts)+'</span></div><div class="body"></div>';
+        el.className='item'+(o.x.sent?' sent':'');
+        el.innerHTML='<button class="del" aria-label="Delete">×</button><div class="meta"><span>VOICE'+tick+'</span><span>'+fmt(o.x.ts)+'</span></div><div class="body"></div>';
         el.querySelector('.body').textContent=o.x.text;
       } else {
         var thumb='';
         if(o.x.blob&&(o.x.type||'').indexOf('image')===0){
           thumb=URL.createObjectURL(o.x.blob);thumbURLs.push(thumb);
         }
-        el.className='item file';
+        el.className='item file'+(o.x.sent?' sent':'');
         el.innerHTML=(thumb?'<img src="'+thumb+'">':'<img>')+
-          '<div><div class="fz"></div><div class="meta" style="margin:2px 0 0"><span>'+
-          (o.x.type||'file').toUpperCase()+'</span><span style="margin-left:8px">'+kb(o.x.size)+'</span></div></div>';
+          '<div class="fmeta"><div class="fz"></div><div class="meta" style="margin:2px 0 0"><span>'+
+          (o.x.type||'file').toUpperCase()+tick+'</span><span style="margin-left:8px">'+kb(o.x.size)+'</span></div></div>'+
+          '<button class="del" aria-label="Delete">×</button>';
         el.querySelector('.fz').textContent=o.x.name;
       }
+      el.querySelector('.del').addEventListener('click',function(ev){
+        ev.stopPropagation();
+        var warn=o.x.sent?'':'\nThis has NOT been sent to the vault yet.';
+        if(!confirm('Remove this '+(o.k==='file'?'file':'entry')+'?'+warn))return;
+        (o.k==='file'?store.deleteFile(o.x.id):store.deleteText(o.x.id)).then(function(){
+          renderSheet();counts();say('removed');
+        });
+      });
       sheetBody.appendChild(el);
     });
   }
@@ -262,7 +275,9 @@ function pulse(){
 }
 async function trySend(day,fromQueue){
   try{
-    await vault.sendDay(day,function(i,total){if(total>1)say('sending '+i+'/'+total+'…');});
+    await vault.sendDay(day,function(i,total){
+      sendBtn.textContent=total>1?('Sending '+i+'/'+total+'…'):'Sending…';
+    });
     return true;
   }catch(e){
     if(e.message==='settings-missing'){say('set up vault sync first');openCfg();}
@@ -276,10 +291,18 @@ async function trySend(day,fromQueue){
   }
 }
 sendBtn.addEventListener('click',async function(){
-  sendBtn.disabled=true;say('sending…');
+  if(sendBtn.disabled)return;
+  sendBtn.disabled=true;sendBtn.textContent='Preparing…';
   var ok=await trySend(viewDay,false);
-  if(ok){pulse();say('synced to vault ✓');}
-  await counts();
+  await renderSheet();                       // refresh the ✓ sent ticks
+  if(ok){
+    pulse();
+    sendBtn.classList.add('done');sendBtn.textContent='Sent ✓';
+    say('synced to vault ✓');
+    setTimeout(function(){sendBtn.classList.remove('done');counts();},2600);
+  } else {
+    await counts();
+  }
   sendBtn.disabled=false;
 });
 async function flushQueue(){
