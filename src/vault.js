@@ -95,8 +95,8 @@ export async function sendDay(day,onProgress){
     // day (many PDFs) is sent as several small requests instead of one huge one.
     const files=[];
     for(const f of d.files){
-      if(!f.blob)continue;
-      files.push({name:f.name,type:f.type,b64:await blobToB64(f.blob)});
+      if(!f.blob||f.sent)continue;        // skip files already sent (no re-upload / no dupes)
+      files.push({id:f.id,name:f.name,type:f.type,b64:await blobToB64(f.blob)});
     }
     const BUDGET=3500000;                 // ~3.5MB of base64 per request
     const chunks=[]; let cur=[],curSize=0;
@@ -121,8 +121,11 @@ export async function sendDay(day,onProgress){
     for(let i=0;i<total;i++){
       if(onProgress)onProgress(i+1,total);
       // md travels with the first request only; later requests just add files
-      await postChunk({key:cfg.webhookKey||'',day:day,md:i===0?buildMd(day,d):'',files:chunks[i]});
+      const payload=chunks[i].map(function(f){return {name:f.name,type:f.type,b64:f.b64};});
+      await postChunk({key:cfg.webhookKey||'',day:day,md:i===0?buildMd(day,d):'',files:payload});
+      for(const f of chunks[i]){if(f.id!=null)await store.markFileSent(f.id);}  // mark only after success
     }
+    for(const t of d.text){if(t.id!=null)await store.markTextSent(t.id);}        // voice entries synced too
     return;
   }
 
