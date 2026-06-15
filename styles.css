@@ -139,6 +139,20 @@ body.sync #halo{border-color:rgba(110,230,170,.55);
 .btn:active{background:var(--mist);color:#06101e}
 .btn.send{color:#06101e;background:var(--mist);border-color:var(--mist)}
 
+/* per-item delete + sent state in the sheet */
+.item{position:relative}
+.item.file{padding-right:32px}
+.item:not(.file){padding-right:30px}
+.item .del{position:absolute;top:3px;right:5px;width:26px;height:26px;border:none;
+  background:transparent;color:var(--dim);font-size:21px;line-height:24px;text-align:center;
+  cursor:pointer;border-radius:50%;padding:0}
+.item .del:active{background:rgba(224,49,46,.22);color:var(--red)}
+.item.sent{opacity:.62}
+.item .ok{color:#6EE6AA;letter-spacing:0}
+.item.file .fmeta{flex:1;min-width:0}
+.item.file .fz{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn.send.done{background:#6EE6AA;border-color:#6EE6AA;color:#04140C}
+
 #toast{
   position:fixed;left:50%;bottom:calc(150px + var(--sab));transform:translateX(-50%) translateY(10px);
   z-index:30;background:rgba(8,12,20,.92);border:1px solid var(--line);
