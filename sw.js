@@ -1,5 +1,5 @@
 /* Cache-first app shell so the PWA launches offline. Bump CACHE on any shell change. */
-const CACHE='braindump-v5';
+const CACHE='braindump-v6';
 const SHELL=[
   './',
   './index.html',
