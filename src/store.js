@@ -130,3 +130,24 @@ export async function queueRemove(id){
   if(!db){mem.queue=mem.queue.filter(function(x){return x.id!==id;});return;}
   await reqP(tx('queue','readwrite').delete(id));
 }
+
+/* ---- mark sent / delete (for dedup + manual cleanup) ---- */
+function markSent(storeName,arr,id){
+  return new Promise(function(res,rej){
+    if(!db){const r=arr.find(function(x){return x.id===id;});if(r)r.sent=Date.now();return res();}
+    const t=db.transaction(storeName,'readwrite'),s=t.objectStore(storeName),g=s.get(id);
+    g.onsuccess=function(){const rec=g.result;if(rec){rec.sent=Date.now();s.put(rec);}};
+    t.oncomplete=function(){res();};t.onerror=function(){rej(t.error);};
+  });
+}
+export function markFileSent(id){return markSent('files',mem.files,id);}
+export function markTextSent(id){return markSent('text',mem.text,id);}
+
+export async function deleteFile(id){
+  if(!db){mem.files=mem.files.filter(function(x){return x.id!==id;});return;}
+  await reqP(tx('files','readwrite').delete(id));
+}
+export async function deleteText(id){
+  if(!db){mem.text=mem.text.filter(function(x){return x.id!==id;});return;}
+  await reqP(tx('text','readwrite').delete(id));
+}
